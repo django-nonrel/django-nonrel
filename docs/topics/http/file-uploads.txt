@@ -200,6 +200,11 @@ define the following methods/attributes:
     For ``text/*`` content-types, the character set (i.e. ``utf8``) supplied
     by the browser. Again, "trust but verify" is the best policy here.
 
+.. attribute:: UploadedFile.content_type_extra
+
+    A dict containing the extra parameters that were passed to the
+    content-type header.
+
 .. attribute:: UploadedFile.temporary_file_path()
 
     Only files uploaded onto disk will have this method; it returns the full
@@ -357,7 +362,7 @@ attributes:
 
         The default is 64*2\ :sup:`10` bytes, or 64 KB.
 
-    ``FileUploadHandler.new_file(self, field_name, file_name, content_type, content_length, charset)``
+    ``FileUploadHandler.new_file(self, field_name, file_name, content_type, content_length, charset, content_type_extra)``
         Callback signaling that a new file upload is starting. This is called
         before any data has been fed to any upload handlers.
 
@@ -373,6 +378,9 @@ attributes:
 
         ``charset`` is the character set (i.e. ``utf8``) given by the browser.
         Like ``content_length``, this sometimes won't be provided.
+
+        ``content_type_extra`` is a dict containing the extra parameters that
+        were passed to the content-type header.
 
         This method may raise a ``StopFutureHandlers`` exception to prevent
         future handlers from handling this file.

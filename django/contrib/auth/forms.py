@@ -5,7 +5,7 @@ from django.contrib.sites.models import get_current_site
 from django.template import Context, loader
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from django.utils.http import int_to_base36
+from django.utils.http import urlsafe_base64_encode
 
 class UserCreationForm(forms.ModelForm):
     """
@@ -138,7 +138,7 @@ class PasswordResetForm(forms.Form):
                 'email': user.email,
                 'domain': domain,
                 'site_name': site_name,
-                'uid': int_to_base36(user.id),
+                'uid': urlsafe_base64_encode(str(user.id)),
                 'user': user,
                 'token': token_generator.make_token(user),
                 'protocol': use_https and 'https' or 'http',

@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import connection, router, transaction
+from django.db import connection, router, transaction, connections
 from django.db.backends import util
 from django.db.models import signals, get_model
 from django.db.models.fields import (AutoField, Field, IntegerField,
@@ -873,7 +873,7 @@ class ForeignKey(RelatedField, Field):
             return None
         else:
             return self.rel.get_related_field().get_db_prep_save(value,
-                connection=connection)
+                    connection=connections[router.db_for_read(self.rel.to)])
 
     def value_to_string(self, obj):
         if not obj:
@@ -924,12 +924,7 @@ class ForeignKey(RelatedField, Field):
         # If the database needs similar types for key fields however, the only
         # thing we can do is making AutoField an IntegerField.
         rel_field = self.rel.get_related_field()
-        if (isinstance(rel_field, AutoField) or
-                (not connection.features.related_fields_match_type and
-                isinstance(rel_field, (PositiveIntegerField,
-                                       PositiveSmallIntegerField)))):
-            return IntegerField().db_type(connection=connection)
-        return rel_field.db_type(connection=connection)
+        return rel_field.related_db_type(connection=connections[router.db_for_read(rel_field.model)])
 
 class OneToOneField(ForeignKey):
     """

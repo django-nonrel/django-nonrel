@@ -328,7 +328,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _rollback(self):
         try:
-            BaseDatabaseWrapper._rollback(self)
+            super(DatabaseWrapper, self)._rollback()
         except Database.NotSupportedError:
             pass
 

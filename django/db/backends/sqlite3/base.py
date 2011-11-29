@@ -218,7 +218,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         # database. To prevent accidental data loss, ignore close requests on
         # an in-memory db.
         if self.settings_dict['NAME'] != ":memory:":
-            BaseDatabaseWrapper.close(self)
+            super(DatabaseWrapper, self).close()
 
 FORMAT_QMARK_REGEX = re.compile(r'(?<!%)%s')
 

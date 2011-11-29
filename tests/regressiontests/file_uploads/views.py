@@ -3,7 +3,8 @@ from django.core.files.uploadedfile import UploadedFile
 from django.http import HttpResponse, HttpResponseServerError
 from django.utils import simplejson
 from models import FileModel, UPLOAD_TO
-from uploadhandler import QuotaUploadHandler, ErroringUploadHandler
+from uploadhandler import (QuotaUploadHandler, ErroringUploadHandler,
+    ContentTypeExtraUploadHandler)
 from django.utils.hashcompat import sha_constructor
 from tests import UNICODE_FILENAME
 
@@ -120,3 +121,8 @@ def file_upload_getlist_count(request):
 def file_upload_errors(request):
     request.upload_handlers.insert(0, ErroringUploadHandler())
     return file_upload_echo(request)
+
+def file_upload_content_type_extra(request):
+    request.upload_handlers.insert(0, ContentTypeExtraUploadHandler())
+    r = dict([(k, f.read()) for k, f in request.FILES.items()])
+    return HttpResponse(simplejson.dumps(r))

@@ -196,6 +196,16 @@ class FileUploadTests(TestCase):
         got = simplejson.loads(response.content)
         self.assertTrue('f' not in got)
 
+    def test_extra_content_type(self):
+        f = tempfile.NamedTemporaryFile()
+        f.write('a' * (2 ** 21))
+        f.seek(0)
+        f.content_type = 'text/plain; blob-key=upload blob key; other=test'
+
+        response = self.client.post("/file_uploads/content_type_extra/", {'f': f})
+        got = simplejson.loads(response.content)
+        self.assertEqual(got['f'], 'upload blob key')
+
     def test_broken_custom_upload_handler(self):
         f = tempfile.NamedTemporaryFile()
         f.write('a' * (2 ** 21))

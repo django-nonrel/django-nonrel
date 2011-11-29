@@ -11,4 +11,6 @@ urlpatterns = patterns('',
     (r'^quota/broken/$',    views.file_upload_quota_broken),
     (r'^getlist_count/$',   views.file_upload_getlist_count),
     (r'^upload_errors/$',   views.file_upload_errors),
+    (r'^upload_errors/$',       views.file_upload_errors),
+    (r'^content_type_extra/$',  views.file_upload_content_type_extra),
 )
