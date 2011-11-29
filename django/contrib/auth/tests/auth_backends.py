@@ -4,7 +4,9 @@ from django.conf import settings
 from django.contrib.auth.models import User, Group, Permission, AnonymousUser
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
+from django.db import connection
 from django.test import TestCase
+from django.utils import unittest
 
 
 class BackendTest(TestCase):
@@ -99,6 +101,9 @@ class BackendTest(TestCase):
         "A superuser has all permissions. Refs #14795"
         user = User.objects.get(username='test2')
         self.assertEqual(len(user.get_all_permissions()), len(Permission.objects.all()))
+
+BackendTest = unittest.skipIf(not connection.features.supports_joins,
+                              'Requires JOIN support')(BackendTest)
 
 class TestObj(object):
     pass
@@ -203,6 +208,8 @@ class RowlevelBackendTest(TestCase):
         self.user3.groups.add(group)
         self.assertEqual(self.user3.get_group_permissions(TestObj()), set(['group_perm']))
 
+RowlevelBackendTest = unittest.skipIf(not connection.features.supports_joins,
+                                      'Requires JOIN support')(RowlevelBackendTest)
 
 class AnonymousUserBackend(SimpleRowlevelBackend):
 

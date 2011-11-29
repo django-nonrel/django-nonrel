@@ -1,9 +1,11 @@
+import base64
 import calendar
 import datetime
 import re
 import sys
 import urllib
 import urlparse
+from binascii import Error as BinasciiError
 from email.Utils import formatdate
 
 from django.utils.encoding import smart_str, force_unicode
@@ -167,6 +169,16 @@ def int_to_base36(i):
         i = i % j
         factor -= 1
     return ''.join(base36)
+
+def urlsafe_base64_encode(s):
+    return base64.urlsafe_b64encode(s).rstrip('\n=')
+
+def urlsafe_base64_decode(s):
+    assert isinstance(s, str)
+    try:
+        return base64.urlsafe_b64decode(s.ljust(len(s) + len(s) % 4, '='))
+    except (LookupError, BinasciiError), e:
+        raise ValueError(e)
 
 def parse_etags(etag_str):
     """

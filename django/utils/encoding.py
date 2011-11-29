@@ -48,7 +48,8 @@ def is_protected_type(obj):
         types.NoneType,
         int, long,
         datetime.datetime, datetime.date, datetime.time,
-        float, Decimal)
+        float, Decimal,
+        tuple, list, dict)
     )
 
 def force_unicode(s, encoding='utf-8', strings_only=False, errors='strict'):

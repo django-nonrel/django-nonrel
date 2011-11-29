@@ -62,10 +62,23 @@ class Serializer(base.Serializer):
         if field.rel.through._meta.auto_created:
             if self.use_natural_keys and hasattr(field.rel.to, 'natural_key'):
                 m2m_value = lambda value: value.natural_key()
+                self._current[field.name] = [m2m_value(related)
+                           for related in getattr(obj, field.name).iterator()]
+            elif field.rel.get_related_field().primary_key:
+                m2m_value = lambda value: smart_unicode(
+                    getattr(value, related_query.target_field_name + '_id'),
+                    strings_only=True)
+                related_query = getattr(obj, field.name)
+                filters = {related_query.source_field_name: obj._get_pk_val()}
+                query = field.rel.through.objects.filter(**filters)
+                self._current[field.name] = sorted((m2m_value(m2m_entity)
+                                                    for m2m_entity in query),
+                                                   reverse=True)
             else:
-                m2m_value = lambda value: smart_unicode(value._get_pk_val(), strings_only=True)
-            self._current[field.name] = [m2m_value(related)
-                               for related in getattr(obj, field.name).iterator()]
+                m2m_value = lambda value: smart_unicode(value._get_pk_val(),
+                                                        strings_only=True)
+                self._current[field.name] = [m2m_value(related)
+                           for related in getattr(obj, field.name).iterator()]
 
     def getvalue(self):
         return self.objects
