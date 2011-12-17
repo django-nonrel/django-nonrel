@@ -1,5 +1,6 @@
 import types
 import sys
+import warnings
 from itertools import izip
 
 import django.db.models.manager     # Imported to register signal handler.
@@ -598,12 +599,18 @@ class Model(object):
 
     save_base.alters_data = True
 
-    def delete(self, using=None):
+    def delete(self, using=None, cascade=None):
         using = using or router.db_for_write(self.__class__, instance=self)
         assert self._get_pk_val() is not None, "%s object can't be deleted because its %s attribute is set to None." % (self._meta.object_name, self._meta.pk.attname)
 
+        if cascade is None:
+            warnings.warn("You have not specified cascade behavior for deletion. "
+                          "This delete won't cascade, but this will change in a future Django-nonrel release.",
+                          RuntimeWarning)
+            cascade = False
+
         collector = Collector(using=using)
-        collector.collect([self])
+        collector.collect([self], collect_related=cascade)
         collector.delete()
 
         self._entity_exists = False

@@ -2,6 +2,7 @@
 The main QuerySet implementation. This provides the public API for the ORM.
 """
 
+import warnings
 from itertools import izip
 
 from django.db import connections, router, transaction, IntegrityError
@@ -424,7 +425,7 @@ class QuerySet(object):
         qs.query.clear_ordering(force_empty=True)
         return dict([(obj._get_pk_val(), obj) for obj in qs.iterator()])
 
-    def delete(self):
+    def delete(self, cascade=None):
         """
         Deletes the records in the current QuerySet.
         """
@@ -442,8 +443,14 @@ class QuerySet(object):
         del_query.query.select_related = False
         del_query.query.clear_ordering()
 
+        if cascade is None:
+            warnings.warn("You have not specified cascade behavior for deletion. "
+                          "This delete won't cascade, but this will change in a future Django-nonrel release.",
+                          RuntimeWarning)
+            cascade = False
+
         collector = Collector(using=del_query.db)
-        collector.collect(del_query)
+        collector.collect(del_query, collect_related=cascade)
         collector.delete()
 
         # Clear the result cache, in case this QuerySet gets reused.
@@ -1028,7 +1035,7 @@ class EmptyQuerySet(QuerySet):
     def count(self):
         return 0
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         pass
 
     def _clone(self, klass=None, setup=False, **kwargs):
