@@ -142,9 +142,6 @@ class Collector(object):
         models, the one case in which the cascade follows the forwards
         direction of an FK rather than the reverse direction.)
         """
-        if not connections[self.using].features.supports_deleting_related_objects:
-            collect_related = False
-
         new_objs = self.add(objs, source, nullable,
                             reverse_dependency=reverse_dependency)
         if not new_objs:

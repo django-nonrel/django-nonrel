@@ -282,7 +282,6 @@ class BaseDatabaseFeatures(object):
 
     supports_joins = True
     distinguishes_insert_from_update = True
-    supports_deleting_related_objects = True
     supports_select_related = True
 
     # Does the default test database allow multiple connections?
