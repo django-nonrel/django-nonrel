@@ -450,39 +450,6 @@ class Field(object):
 class AutoField(Field):
     description = _("Automatic key")
 
-    # Values for the field are cast to this type. It may be overriden
-    # by back-ends that don't want to support integers as automatic
-    # keys (due to a database being unable to generate unique integers
-    # efficiently or offering hard-to-guess keys of a different type).
-    # Why do we need a fixed type at all? Because, for example, a model
-    # created with an int(1) key can be looked up using string('1').
-    # This is not a flaw -- values arrive as strings in requests and
-    # "untyped" field wouldn't know whether a string is really a string
-    # or if it should be cast to another type (unless you'd pass around
-    # values reinforced by encoded type, but that's rather not worth
-    # the hassle).
-    # Why not do this within the database layer? Because it results in
-    # weakening of validation and impacts processing field values
-    # elsewhere (e.g. their serialization).
-    # Usage: `AutoField.value_type = long / unicode` once (e.g. in
-    #        back-end compiler's global scope).
-    _value_type = None
-
-    class __metaclass__(Field.__metaclass__):
-        def get_value_type(cls):
-            if cls._value_type is None:
-                cls._value_type = int
-            return cls._value_type
-
-        def set_value_type(cls, new_type):
-            if cls._value_type is not None and cls._value_type != new_type:
-                raise exceptions.ImproperlyConfigured(
-                    "Cannot use back-ends with different %s value "
-                    "types together." % str(cls))
-            cls._value_type = new_type
-
-        value_type = property(get_value_type, set_value_type)
-
     empty_strings_allowed = False
     default_error_messages = {
         'invalid': _(u'This value must be of the %s type.'),
@@ -499,10 +466,10 @@ class AutoField(Field):
         if value is None:
             return value
         try:
-            return self.__class__.value_type(value)
+            return settings.AUTOFIELD_TYPE(value)
         except (TypeError, ValueError):
             raise exceptions.ValidationError(self.error_messages['invalid'] %
-                                             str(self.__class__.value_type))
+                                             str(settings.AUTOFIELD_TYPE))
 
     def validate(self, value, model_instance):
         pass
@@ -510,7 +477,7 @@ class AutoField(Field):
     def get_prep_value(self, value):
         if value is None:
             return None
-        return self.__class__.value_type(value)
+        return settings.AUTOFIELD_TYPE(value)
 
     def contribute_to_class(self, cls, name):
         assert not cls._meta.has_auto_field, "A model can't have more than one AutoField."
