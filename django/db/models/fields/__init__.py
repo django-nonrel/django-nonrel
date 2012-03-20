@@ -451,9 +451,6 @@ class AutoField(Field):
     description = _("Automatic key")
 
     empty_strings_allowed = False
-    default_error_messages = {
-        'invalid': _(u'This value must be of the %s type.'),
-    }
     def __init__(self, *args, **kwargs):
         assert kwargs.get('primary_key', False) is True, "%ss must have primary_key=True." % self.__class__.__name__
         kwargs['blank'] = True
@@ -466,14 +463,9 @@ class AutoField(Field):
         pass
 
     def get_db_prep_value(self, value, connection, prepared=False):
-        type_ = connection.settings_dict.get('AUTOFIELD_TYPE', int)
         if value is None:
             return value
-        try:
-            return type_(value)
-        except (TypeError, ValueError):
-            raise exceptions.ValidationError(self.error_messages['invalid'] %
-                                             str(type_))
+        return connection.settings_dict.get('AUTOFIELD_TYPE', int)(value)
 
     def contribute_to_class(self, cls, name):
         assert not cls._meta.has_auto_field, "A model can't have more than one AutoField."
