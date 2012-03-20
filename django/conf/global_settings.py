@@ -142,24 +142,6 @@ SERVER_EMAIL = 'root@localhost'
 # Whether to send broken-link e-mails.
 SEND_BROKEN_LINK_EMAILS = False
 
-# Values for the AutoField are cast to this type. It may be overriden
-# by back-ends that don't want to support integers as automatic keys
-# (due to a database being unable to generate unique integers
-# efficiently or offering hard-to-guess keys of a different type).
-# Why do we need a fixed type at all? Because, for example, a model
-# created with an int(1) key can be looked up using string('1').
-# This is not a flaw -- values arrive as strings in requests and
-# "untyped" field wouldn't know whether a string is really a string
-# or if it should be cast to another type (unless you'd pass around
-# values reinforced by encoded type, but that's rather not worth
-# the hassle).
-# Why not do this within the database layer? Because it results in
-# weakening of validation and impacts processing of field values
-# elsewhere (e.g. their serialization).
-# Defaults to int, this may be changed just once (unless the new type
-# is a subclass of the previously chosen one).
-# AUTOFIELD_TYPE = int
-
 # Database connection info.
 # Legacy format
 DATABASE_ENGINE = ''           # 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.

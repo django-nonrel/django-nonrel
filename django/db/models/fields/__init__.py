@@ -462,22 +462,18 @@ class AutoField(Field):
     def get_internal_type(self):
         return "AutoField"
 
-    def to_python(self, value):
-        if value is None:
-            return value
-        try:
-            return settings.AUTOFIELD_TYPE(value)
-        except (TypeError, ValueError):
-            raise exceptions.ValidationError(self.error_messages['invalid'] %
-                                             str(settings.AUTOFIELD_TYPE))
-
     def validate(self, value, model_instance):
         pass
 
-    def get_prep_value(self, value):
+    def get_db_prep_value(self, value, connection, prepared=False):
+        type_ = connection.settings_dict.get('AUTOFIELD_TYPE', int)
         if value is None:
-            return None
-        return settings.AUTOFIELD_TYPE(value)
+            return value
+        try:
+            return type_(value)
+        except (TypeError, ValueError):
+            raise exceptions.ValidationError(self.error_messages['invalid'] %
+                                             str(type_))
 
     def contribute_to_class(self, cls, name):
         assert not cls._meta.has_auto_field, "A model can't have more than one AutoField."
