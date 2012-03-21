@@ -463,9 +463,7 @@ class AutoField(Field):
         pass
 
     def get_db_prep_value(self, value, connection, prepared=False):
-        if value is None:
-            return value
-        return connection.settings_dict.get('AUTOFIELD_TYPE', int)(value)
+        return connection.ops.value_to_db_auto(value)
 
     def contribute_to_class(self, cls, name):
         assert not cls._meta.has_auto_field, "A model can't have more than one AutoField."
