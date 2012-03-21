@@ -673,6 +673,15 @@ class BaseDatabaseOperations(object):
     # need not necessarily be implemented using "LIKE" in the backend.
     prep_for_iexact_query = prep_for_like_query
 
+    def value_to_db_auto(self, value):
+        """
+        Transform an AutoField value to an object compatible with what is expected
+        by the backend driver for automatic keys.
+        """
+        if value is None:
+            return None
+        return int(value)
+
     def value_to_db_date(self, value):
         """
         Transform a date value to an object compatible with what is expected
