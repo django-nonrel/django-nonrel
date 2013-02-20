@@ -6,6 +6,13 @@ Settings
     :local:
     :depth: 1
 
+.. warning::
+
+    Be careful when you override settings, especially when the default value
+    is a non-empty tuple or dict, like :setting:`MIDDLEWARE_CLASSES` and
+    :setting:`TEMPLATE_CONTEXT_PROCESSORS`. Make sure you keep the components
+    required by the features of Django you wish to use.
+
 Available settings
 ==================
 
@@ -74,6 +81,42 @@ of (Full name, e-mail address). Example::
 
 Note that Django will e-mail *all* of these people whenever an error happens.
 See :doc:`/howto/error-reporting` for more information.
+
+.. setting:: ALLOWED_HOSTS
+
+ALLOWED_HOSTS
+-------------
+
+Default: ``['*']``
+
+A list of strings representing the host/domain names that this Django site can
+serve. This is a security measure to prevent an attacker from poisoning caches
+and password reset emails with links to malicious hosts by submitting requests
+with a fake HTTP ``Host`` header, which is possible even under many
+seemingly-safe webserver configurations.
+
+Values in this list can be fully qualified names (e.g. ``'www.example.com'``),
+in which case they will be matched against the request's ``Host`` header
+exactly (case-insensitive, not including port). A value beginning with a period
+can be used as a subdomain wildcard: ``'.example.com'`` will match
+``example.com``, ``www.example.com``, and any other subdomain of
+``example.com``. A value of ``'*'`` will match anything; in this case you are
+responsible to provide your own validation of the ``Host`` header (perhaps in a
+middleware; if so this middleware must be listed first in
+:setting:`MIDDLEWARE_CLASSES`).
+
+If the ``Host`` header (or ``X-Forwarded-Host`` if
+:setting:`USE_X_FORWARDED_HOST` is enabled) does not match any value in this
+list, the :meth:`django.http.HttpRequest.get_host()` method will raise
+:exc:`~django.core.exceptions.SuspiciousOperation`.
+
+When :setting:`DEBUG` is ``True`` or when running tests, host validation is
+disabled; any host will be accepted. Thus it's usually only necessary to set it
+in production.
+
+This validation only applies via :meth:`~django.http.HttpRequest.get_host()`;
+if your code accesses the ``Host`` header directly from ``request.META`` you
+are bypassing this security protection.
 
 .. setting:: ALLOWED_INCLUDE_ROOTS
 
@@ -619,11 +662,13 @@ Default::
     '%b %d, %Y', '%d %b %Y', '%d %b, %Y', '%B %d %Y',
     '%B %d, %Y', '%d %B %Y', '%d %B, %Y')
 
-A tuple of formats that will be accepted when inputting data on a date
-field. Formats will be tried in order, using the first valid.
-Note that these format strings are specified in Python's datetime_ module
-syntax, that is different from the one used by Django for formatting dates
-to be displayed.
+A tuple of formats that will be accepted when inputting data on a date field.
+Formats will be tried in order, using the first valid. Note that these format
+strings are specified in Python's datetime_ module syntax, that is different
+from the one used by Django for formatting dates to be displayed.
+
+When :setting:`USE_L10N` is ``True``, the locale-dictated format has higher
+precedence and will be applied instead.
 
 See also :setting:`DATETIME_INPUT_FORMATS` and :setting:`TIME_INPUT_FORMATS`.
 
@@ -660,10 +705,12 @@ Default::
     '%m/%d/%y %H:%M:%S', '%m/%d/%y %H:%M', '%m/%d/%y')
 
 A tuple of formats that will be accepted when inputting data on a datetime
-field. Formats will be tried in order, using the first valid.
-Note that these format strings are specified in Python's datetime_ module
-syntax, that is different from the one used by Django for formatting dates
-to be displayed.
+field. Formats will be tried in order, using the first valid. Note that these
+format strings are specified in Python's datetime_ module syntax, that is
+different from the one used by Django for formatting dates to be displayed.
+
+When :setting:`USE_L10N` is ``True``, the locale-dictated format has higher
+precedence and will be applied instead.
 
 See also :setting:`DATE_INPUT_FORMATS` and :setting:`TIME_INPUT_FORMATS`.
 
@@ -978,9 +1025,12 @@ FIXTURE_DIRS
 
 Default: ``()`` (Empty tuple)
 
-List of locations of the fixture data files, in search order. Note that
-these paths should use Unix-style forward slashes, even on Windows. See
-:doc:`/topics/testing`.
+List of directories searched for fixture files, in addition to the
+``fixtures`` directory of each application, in search order.
+
+Note that these paths should use Unix-style forward slashes, even on Windows.
+
+See :ref:`initial-data-via-fixtures` and :ref:`topics-testing-fixtures`.
 
 FORCE_SCRIPT_NAME
 ------------------
@@ -1742,8 +1792,10 @@ TEMPLATE_DIRS
 
 Default: ``()`` (Empty tuple)
 
-List of locations of the template source files, in search order. Note that
-these paths should use Unix-style forward slashes, even on Windows.
+List of locations of the template source files searched by
+:class:`django.template.loaders.filesystem.Loader`, in search order.
+
+Note that these paths should use Unix-style forward slashes, even on Windows.
 
 See :doc:`/topics/templates`.
 
@@ -1836,11 +1888,13 @@ TIME_INPUT_FORMATS
 
 Default: ``('%H:%M:%S', '%H:%M')``
 
-A tuple of formats that will be accepted when inputting data on a time
-field. Formats will be tried in order, using the first valid.
-Note that these format strings are specified in Python's datetime_ module
-syntax, that is different from the one used by Django for formatting dates
-to be displayed.
+A tuple of formats that will be accepted when inputting data on a time field.
+Formats will be tried in order, using the first valid. Note that these format
+strings are specified in Python's datetime_ module syntax, that is different
+from the one used by Django for formatting dates to be displayed.
+
+When :setting:`USE_L10N` is ``True``, the locale-dictated format has higher
+precedence and will be applied instead.
 
 See also :setting:`DATE_INPUT_FORMATS` and :setting:`DATETIME_INPUT_FORMATS`.
 

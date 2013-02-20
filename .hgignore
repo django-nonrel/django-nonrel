@@ -1,13 +1,6 @@
-syntax: glob
-*~
-*.tmp
-*.swp
+syntax:glob
+
 *.egg-info
 *.pot
 *.py[co]
 docs/_build/
-*.orig
-desktop.ini
-nbproject
-tests/django
-build

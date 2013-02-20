@@ -225,18 +225,18 @@ class BaseModelAdmin(object):
         # if foo has been specificially included in the lookup list; so
         # drop __id if it is the last part. However, first we need to find
         # the pk attribute name.
-        pk_attr_name = None
+        rel_name = None
         for part in parts[:-1]:
             field, _, _, _ = model._meta.get_field_by_name(part)
             if hasattr(field, 'rel'):
                 model = field.rel.to
-                pk_attr_name = model._meta.pk.name
+                rel_name = field.rel.get_related_field().name
             elif isinstance(field, RelatedObject):
                 model = field.model
-                pk_attr_name = model._meta.pk.name
+                rel_name = model._meta.pk.name
             else:
-                pk_attr_name = None
-        if pk_attr_name and len(parts) > 1 and parts[-1] == pk_attr_name:
+                rel_name = None
+        if rel_name and len(parts) > 1 and parts[-1] == rel_name:
             parts.pop()
 
         try:
@@ -1242,15 +1242,21 @@ class ModelAdmin(BaseModelAdmin):
     def history_view(self, request, object_id, extra_context=None):
         "The 'history' admin view for this model."
         from django.contrib.admin.models import LogEntry
+        # First check if the user can see this history.
         model = self.model
+        obj = get_object_or_404(model, pk=unquote(object_id))
+
+        if not self.has_change_permission(request, obj):
+            raise PermissionDenied
+
+        # Then get the history for this object.
         opts = model._meta
         app_label = opts.app_label
         action_list = LogEntry.objects.filter(
             object_id = object_id,
             content_type__id__exact = ContentType.objects.get_for_model(model).id
         ).select_related().order_by('action_time')
-        # If no history was found, see whether this object even exists.
-        obj = get_object_or_404(model, pk=unquote(object_id))
+
         context = {
             'title': _('Change history: %s') % force_unicode(obj),
             'action_list': action_list,

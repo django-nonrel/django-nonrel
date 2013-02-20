@@ -596,6 +596,7 @@ class Model(object):
             signals.post_save.send(sender=origin, instance=self,
                 created=created, raw=raw, using=using)
 
+
     save_base.alters_data = True
 
     def delete(self, using=None):

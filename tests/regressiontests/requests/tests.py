@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 import time
 from datetime import datetime, timedelta
 from StringIO import StringIO
 
 from django.conf import settings
 from django.core.handlers.modpython import ModPythonRequest
+from django.core.exceptions import SuspiciousOperation
 from django.core.handlers.wsgi import WSGIRequest, LimitedStream
 from django.http import HttpRequest, HttpResponse, parse_cookie
 from django.utils import unittest
@@ -61,17 +63,23 @@ class RequestsTests(unittest.TestCase):
             'http://www.example.com/path/with:colons')
 
     def test_http_get_host(self):
-        old_USE_X_FORWARDED_HOST = settings.USE_X_FORWARDED_HOST
+        _old_USE_X_FORWARDED_HOST = settings.USE_X_FORWARDED_HOST
+        _old_ALLOWED_HOSTS = settings.ALLOWED_HOSTS
         try:
             settings.USE_X_FORWARDED_HOST = False
+            settings.ALLOWED_HOSTS = [
+                'forward.com', 'example.com', 'internal.com', '12.34.56.78',
+                '[2001:19f0:feee::dead:beef:cafe]', 'xn--4ca9at.com',
+                '.multitenant.com', 'INSENSITIVE.com',
+                ]
 
             # Check if X_FORWARDED_HOST is provided.
             request = HttpRequest()
             request.META = {
-                u'HTTP_X_FORWARDED_HOST': u'forward.com',
-                u'HTTP_HOST': u'example.com',
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 80,
+                'HTTP_X_FORWARDED_HOST': 'forward.com',
+                'HTTP_HOST': 'example.com',
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 80,
             }
             # X_FORWARDED_HOST is ignored.
             self.assertEqual(request.get_host(), 'example.com')
@@ -79,43 +87,84 @@ class RequestsTests(unittest.TestCase):
             # Check if X_FORWARDED_HOST isn't provided.
             request = HttpRequest()
             request.META = {
-                u'HTTP_HOST': u'example.com',
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 80,
+                'HTTP_HOST': 'example.com',
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 80,
             }
             self.assertEqual(request.get_host(), 'example.com')
 
             # Check if HTTP_HOST isn't provided.
             request = HttpRequest()
             request.META = {
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 80,
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 80,
             }
             self.assertEqual(request.get_host(), 'internal.com')
 
             # Check if HTTP_HOST isn't provided, and we're on a nonstandard port
             request = HttpRequest()
             request.META = {
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 8042,
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 8042,
             }
             self.assertEqual(request.get_host(), 'internal.com:8042')
 
+            # Poisoned host headers are rejected as suspicious
+            legit_hosts = [
+                'example.com',
+                'example.com:80',
+                '12.34.56.78',
+                '12.34.56.78:443',
+                '[2001:19f0:feee::dead:beef:cafe]',
+                '[2001:19f0:feee::dead:beef:cafe]:8080',
+                'xn--4ca9at.com', # Punnycode for öäü.com
+                'anything.multitenant.com',
+                'multitenant.com',
+                'insensitive.com',
+            ]
+
+            poisoned_hosts = [
+                'example.com@evil.tld',
+                'example.com:dr.frankenstein@evil.tld',
+                'example.com:dr.frankenstein@evil.tld:80',
+                'example.com:80/badpath',
+                'example.com: recovermypassword.com',
+                'other.com', # not in ALLOWED_HOSTS
+            ]
+
+            for host in legit_hosts:
+                request = HttpRequest()
+                request.META = {
+                    'HTTP_HOST': host,
+                }
+                request.get_host()
+
+            for host in poisoned_hosts:
+                def _test():
+                    request = HttpRequest()
+                    request.META = {
+                        'HTTP_HOST': host,
+                    }
+                    request.get_host()
+                self.assertRaises(SuspiciousOperation, _test)
         finally:
-            settings.USE_X_FORWARDED_HOST = old_USE_X_FORWARDED_HOST
+            settings.ALLOWED_HOSTS = _old_ALLOWED_HOSTS
+            settings.USE_X_FORWARDED_HOST = _old_USE_X_FORWARDED_HOST
 
     def test_http_get_host_with_x_forwarded_host(self):
-        old_USE_X_FORWARDED_HOST = settings.USE_X_FORWARDED_HOST
+        _old_USE_X_FORWARDED_HOST = settings.USE_X_FORWARDED_HOST
+        _old_ALLOWED_HOSTS = settings.ALLOWED_HOSTS
         try:
             settings.USE_X_FORWARDED_HOST = True
+            settings.ALLOWED_HOSTS = ['*']
 
             # Check if X_FORWARDED_HOST is provided.
             request = HttpRequest()
             request.META = {
-                u'HTTP_X_FORWARDED_HOST': u'forward.com',
-                u'HTTP_HOST': u'example.com',
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 80,
+                'HTTP_X_FORWARDED_HOST': 'forward.com',
+                'HTTP_HOST': 'example.com',
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 80,
             }
             # X_FORWARDED_HOST is obeyed.
             self.assertEqual(request.get_host(), 'forward.com')
@@ -123,30 +172,82 @@ class RequestsTests(unittest.TestCase):
             # Check if X_FORWARDED_HOST isn't provided.
             request = HttpRequest()
             request.META = {
-                u'HTTP_HOST': u'example.com',
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 80,
+                'HTTP_HOST': 'example.com',
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 80,
             }
             self.assertEqual(request.get_host(), 'example.com')
 
             # Check if HTTP_HOST isn't provided.
             request = HttpRequest()
             request.META = {
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 80,
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 80,
             }
             self.assertEqual(request.get_host(), 'internal.com')
 
             # Check if HTTP_HOST isn't provided, and we're on a nonstandard port
             request = HttpRequest()
             request.META = {
-                u'SERVER_NAME': u'internal.com',
-                u'SERVER_PORT': 8042,
+                'SERVER_NAME': 'internal.com',
+                'SERVER_PORT': 8042,
             }
             self.assertEqual(request.get_host(), 'internal.com:8042')
 
+            # Poisoned host headers are rejected as suspicious
+            legit_hosts = [
+                'example.com',
+                'example.com:80',
+                '12.34.56.78',
+                '12.34.56.78:443',
+                '[2001:19f0:feee::dead:beef:cafe]',
+                '[2001:19f0:feee::dead:beef:cafe]:8080',
+                'xn--4ca9at.com', # Punnycode for öäü.com
+            ]
+
+            poisoned_hosts = [
+                'example.com@evil.tld',
+                'example.com:dr.frankenstein@evil.tld',
+                'example.com:dr.frankenstein@evil.tld:80',
+                'example.com:80/badpath',
+                'example.com: recovermypassword.com',
+            ]
+
+            for host in legit_hosts:
+                request = HttpRequest()
+                request.META = {
+                    'HTTP_HOST': host,
+                }
+                request.get_host()
+
+            for host in poisoned_hosts:
+                def _test():
+                    request = HttpRequest()
+                    request.META = {
+                        'HTTP_HOST': host,
+                    }
+                    request.get_host()
+                self.assertRaises(SuspiciousOperation, _test)
         finally:
-            settings.USE_X_FORWARDED_HOST = old_USE_X_FORWARDED_HOST
+            settings.ALLOWED_HOSTS = _old_ALLOWED_HOSTS
+            settings.USE_X_FORWARDED_HOST = _old_USE_X_FORWARDED_HOST
+
+    def test_host_validation_disabled_in_debug_mode(self):
+        """If ALLOWED_HOSTS is empty and DEBUG is True, all hosts pass."""
+        _old_DEBUG = settings.DEBUG
+        _old_ALLOWED_HOSTS = settings.ALLOWED_HOSTS
+        try:
+            settings.DEBUG = True
+            settings.ALLOWED_HOSTS = []
+
+            request = HttpRequest()
+            request.META = {
+                'HTTP_HOST': 'example.com',
+            }
+            self.assertEqual(request.get_host(), 'example.com')
+        finally:
+            settings.DEBUG = _old_DEBUG
+            settings.ALLOWED_HOSTS = _old_ALLOWED_HOSTS
 
     def test_near_expiration(self):
         "Cookie will expire when an near expiration time is provided"

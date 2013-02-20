@@ -976,7 +976,6 @@ class PositiveIntegerField(IntegerField):
 
 class PositiveSmallIntegerField(IntegerField):
     description = _("Integer")
-
     def get_internal_type(self):
         return "PositiveSmallIntegerField"
 
